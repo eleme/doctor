@@ -39,22 +39,7 @@ class APIHealthTestResult(object):
 
 
 class HealthTester(object):
-
-    NEED_RECORD = False
-
-    _LOCKS = defaultdict(dict)
     """
-    `_LOCKS` is a dict to hold :meth:`test` runtime data, its schema::
-
-        {func_slug: {locked_at: locked_time,
-                    locked_status: status of lock}}
-    * locked_at: the time when the fun is locked
-    * locked_status: the status of lock
-        #. locked:  the func is locked
-        #. unlocked: the func is unlocked
-        #. recover: state  between locked and unlocked in which the circuit
-                    breaker is recovering based on the healthy status of func
-
     Parameters::
 
     * metrics: ``Metrics`` object.
@@ -74,6 +59,25 @@ class HealthTester(object):
         granularity = settings.METRICS_GRANULARITY
         rollingsize = settings.METRICS_ROLLINGSIZE
         self._interval = granularity * rollingsize
+
+        self._locks = defaultdict(dict)
+
+    @property
+    def locks(self):
+        """
+        `locks` is a dict to hold :meth:`test` runtime data, its schema::
+
+            {func_slug: {locked_at: locked_time,
+                        locked_status: status of lock}}
+
+        * locked_at: the time when the fun is locked
+        * locked_status: the status of lock
+            #. locked:  the func is locked
+            #. unlocked: the func is unlocked
+            #. recover: state  between locked and unlocked in which the circuit
+                        breaker is recovering based on the healthy status of func
+        """
+        return self._locks
 
     def test(self, service_name, func_name, logger=None):
         """
@@ -169,8 +173,8 @@ class HealthTester(object):
 
     def _get_api_lock(self, key):
         if key not in self._LOCKS:
-            self._LOCKS[key]['locked_at'] = 0
-            self._LOCKS[key]['locked_status'] = MODE_UNLOCKED
+            self._locks[key]['locked_at'] = 0
+            self._locks[key]['locked_status'] = MODE_UNLOCKED
         return self._LOCKS[key]
 
     def is_healthy(self, service_name, func_name):

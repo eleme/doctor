@@ -17,7 +17,6 @@ setup(
     description="",
     url='',
     author='Eleme Dev',
-    author_email='dxc.wolf@gmail.com',
-    keywords='requirements tool',
+    author_email='',
     packages=['doctor'],
 )
