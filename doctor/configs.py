@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 class Configs(dict):
     """
-    Configs for ``Metrics`` and `HealthTester``.
+    Configs for ``Metrics`` and ``HealthTester``.
     """
 
     def __init__(self, settings=None):

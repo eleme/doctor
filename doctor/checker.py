@@ -72,10 +72,11 @@ class HealthTester(object):
 
         * locked_at: the time when the fun is locked
         * locked_status: the status of lock
-            #. locked:  the func is locked
+            #. locked:   the func is locked
             #. unlocked: the func is unlocked
-            #. recover: state  between locked and unlocked in which the circuit
-                        breaker is recovering based on the healthy status of func
+            #. recover:  state between locked and unlocked in which the
+                         circuit breaker is recovering based on the
+                         healthy status of func
         """
         return self._locks
 
@@ -119,7 +120,7 @@ class HealthTester(object):
 
         result = None
 
-        if locked_status == self._MODE_LOCKED:
+        if locked_status == MODE_LOCKED:
             if health_ok_now:
                 # turns OK
                 locked_span = time_now - locked_at

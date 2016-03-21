@@ -15,25 +15,6 @@ Features
 2. Currently only support counters.
 3. Counters are implemented in ``RollingNumber``, a rolling number
    is like a sliding window on timestamp sequence.
-
-Settings
---------
-::
-
-    METRICS_GRANULARITY:              stats time granularity. (in seconds)
-    METRICS_ROLLINGSIZE:              rolling number's window length.
-
-Methods
---------
-::
-
-    get(key, default=0)     get current counter value by ``key``, if the key
-                            was not found, gives ``default``.
-    incr(key, value=1)      increment the counter value by ``value``, if the
-                            counter was not found, create one and increment it.
-
-Apis
-----
 """
 
 import time
@@ -151,6 +132,7 @@ class Metrics(object):
 
     @property
     def counters(self):
+        """``RollingNumber`` object."""
         return self._counters
 
     @property
@@ -164,7 +146,9 @@ class Metrics(object):
         return self._api_latest_state
 
     def incr(self, key, value=1):
-        """Increment counter by `value`."""
+        """increment the counter value by ``value``, if the
+        counter was not found, create one and increment it.
+        """
         if key not in self._counters:
             self._counters[key] = RollingNumber(
                 self._rollingsize, rolling_granularity=self._granularity)
@@ -172,7 +156,7 @@ class Metrics(object):
         counter.incr(value)
 
     def get(self, key, default=0):
-        """Get metric value by `key`."""
+        """Get metric value by `key`, if not found ,return default."""
         v = self._counters.get(key, None)
         return (v and v.value()) or default
 
