@@ -3,7 +3,7 @@
 import time
 
 from doctor import HealthTester, Metrics, Configs
-from doctor.checker import MODE_LOCKED, MODE_UNLOCKED
+from doctor.checker import MODE_LOCKED, MODE_UNLOCKED, MODE_RECOVER
 
 
 def test_health_tester():
@@ -54,7 +54,7 @@ def test_health_tester():
 
     test_result = tester.test(*key)
     assert test_result.result == True
-    assert test_result.lock_changed is None
+    assert test_result.lock_changed == MODE_RECOVER
 
     # random release request
     metrics.on_api_called_ok(*key)

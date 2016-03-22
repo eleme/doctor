@@ -131,6 +131,7 @@ class HealthTester(object):
                 else:
                     # enter into recover mode
                     lock['locked_status'] = MODE_RECOVER
+                    test_result.lock_changed = MODE_RECOVER
                     # release this request for health check
                     result = True
             else:
