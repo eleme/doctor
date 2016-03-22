@@ -30,8 +30,9 @@ class APIHealthTestResult(object):
         end_at          timestamp when the test ends.
         logger          service logger
     """
-    __slots__ = ['func', 'service', 'result', 'locked_at', 'locked_status',
-                 'health_ok_now', 'start_at', 'end_at', 'logger']
+    __slots__ = ['func_name', 'service_name', 'result', 'locked_at',
+                 'health_ok_now', 'start_at', 'end_at', 'logger',
+                 'lock_changed']
 
     def __init__(self):
         for attr in self.__slots__:
@@ -173,10 +174,10 @@ class HealthTester(object):
         return test_result
 
     def _get_api_lock(self, key):
-        if key not in self._LOCKS:
+        if key not in self._locks:
             self._locks[key]['locked_at'] = 0
             self._locks[key]['locked_status'] = MODE_UNLOCKED
-        return self._LOCKS[key]
+        return self._locks[key]
 
     def is_healthy(self, service_name, func_name):
         """

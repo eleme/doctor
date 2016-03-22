@@ -21,7 +21,6 @@ class Configs(dict):
             HEALTH_THRESHOLD_TIMEOUT=0.5,  # percentage per `INTERVAL`
             HEALTH_THRESHOLD_SYS_EXC=0.5,  # percentage per `INTERVAL`
             HEALTH_THRESHOLD_UNKWN_EXC=0.5,  # percentage per `INTERVAL`
-            TEST='test',
         )
         super(self.__class__, self).__init__(**defaults)
 

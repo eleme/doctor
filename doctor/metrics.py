@@ -107,7 +107,7 @@ class RollingNumber(object):
         ``_clock`` to ``now``.
         """
         now = time.time()
-        length = int((now - self._clock) / self.rolling_granularity)
+        length = int((now - self._clock) // self.rolling_granularity)
         if length > 0:
             self.shift(length)
             self._clock = now
@@ -124,6 +124,7 @@ class Metrics(object):
     def __init__(self, settings=None):
         if settings is None:
             settings = Configs()
+        self.configs = settings
         self._granularity = settings.METRICS_GRANULARITY
         self._rollingsize = settings.METRICS_ROLLINGSIZE
 
