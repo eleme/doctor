@@ -3,6 +3,7 @@
 import time
 
 from doctor.metrics import RollingNumber, Metrics
+from doctor.configs import Configs
 
 
 def test_rollingnumber():
@@ -24,7 +25,7 @@ def test_rollingnumber():
 
 
 def test_metrics():
-    metrics = Metrics()
+    metrics = Metrics(Configs())
 
     metrics.incr('foo.bar', 1)
     assert metrics.get('foo.bar') == 1
