@@ -4,6 +4,10 @@ Health is described with current errors percentage, if the health status turns b
 
 You must invoke `on_*` like methods of `Metrics` to record metrics, then `HealthTester` calculate api call status by thresholds, and based the flowing policy to decide whether the current request can be passed.
 
+### Install
+
+    pip install doctor -i http://pypi.dev.elenet.me/eleme/eleme
+
 ### Policy
 
 Current detail policy to test health description:
