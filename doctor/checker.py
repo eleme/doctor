@@ -188,6 +188,16 @@ class HealthTester(object):
         ctx.result = result
         ctx.lock = lock.copy()
         # call callbacks.
+        self._send_test_call_ctx(ctx, result, lock_changed)
+        return result
+
+    def _get_api_lock(self, key):
+        if key not in self._locks:
+            self._locks[key]['locked_at'] = 0
+            self._locks[key]['locked_status'] = MODE_UNLOCKED
+        return self._locks[key]
+
+    def _send_test_call_ctx(self, ctx, result, lock_changed):
         if lock_changed == MODE_LOCKED:
             self._on_api_health_locked(ctx)
         elif lock_changed == MODE_UNLOCKED:
@@ -198,13 +208,6 @@ class HealthTester(object):
             self._on_api_health_tested_ok(ctx)
         else:
             self._on_api_health_tested_bad(ctx)
-        return result
-
-    def _get_api_lock(self, key):
-        if key not in self._locks:
-            self._locks[key]['locked_at'] = 0
-            self._locks[key]['locked_status'] = MODE_UNLOCKED
-        return self._locks[key]
 
     def is_healthy(self, service_name, func_name):
         """
