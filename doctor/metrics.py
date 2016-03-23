@@ -19,8 +19,6 @@ Features
 
 import time
 
-from .configs import Configs
-
 
 class RollingNumber(object):
     """
@@ -121,10 +119,7 @@ class RollingNumber(object):
 
 class Metrics(object):
 
-    def __init__(self, settings=None):
-        if settings is None:
-            settings = Configs()
-        self.configs = settings
+    def __init__(self, settings):
         self._granularity = settings.METRICS_GRANULARITY
         self._rollingsize = settings.METRICS_ROLLINGSIZE
 

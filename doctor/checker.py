@@ -5,8 +5,9 @@ from __future__ import absolute_import
 import time
 import random
 import logging
-import functools
 from collections import defaultdict
+
+from .metrics import Metrics
 
 
 MODE_UNLOCKED = 0
@@ -14,25 +15,22 @@ MODE_LOCKED = 1
 MODE_RECOVER = 2
 
 
-class APIHealthTestResult(object):
+class APIHealthTestCtx(object):
     """
-    ``HealthTester`` result data::
+    `API call` context to hold data::
 
         func            api function to be called.
         service         the service this api belongs to.
         result          the `test` result, (True or False).
-        locked_at       the timestamp this api was locked,
-                        0 for not locked.
-        lock_changed    if status of lock changed, must be MODE_LOCKED
-                        or  MODE_UNLOCKED, if not, None.
+        lock            current api lock information, dict,
+                        keys: ``locked_at``, ``locked_status``.
         health_ok_now   if the api is ok now, True for ok.
         start_at        timestamp when the test starts.
         end_at          timestamp when the test ends.
         logger          service logger
     """
-    __slots__ = ['func_name', 'service_name', 'result', 'locked_at',
-                 'health_ok_now', 'start_at', 'end_at', 'logger',
-                 'lock_changed']
+    __slots__ = ['func_name', 'service_name', 'result', 'lock',
+                 'health_ok_now', 'start_at', 'end_at', 'logger']
 
     def __init__(self):
         for attr in self.__slots__:
@@ -43,25 +41,42 @@ class HealthTester(object):
     """
     Parameters::
 
-    * metrics: ``Metrics`` object.
+    * configs: ``Configs`` object.
     """
 
-    def __init__(self, metrics):
-        settings = metrics.configs
-        self._metrics = metrics
+    def __init__(self, configs,
+                 on_api_health_locked,
+                 on_api_health_unlocked,
+                 on_api_health_tested,
+                 on_api_health_tested_bad,
+                 on_api_health_tested_ok):
+        self._metrics = Metrics(configs)
 
-        self._min_recovery_time = settings.HEALTH_MIN_RECOVERY_TIME
-        self._max_recovery_time = settings.HEALTH_MAX_RECOVERY_TIME
-        self._threshold_request = settings.HEALTH_THRESHOLD_REQUEST
-        self._threshold_timeout = settings.HEALTH_THRESHOLD_TIMEOUT
-        self._threshold_sys_exc = settings.HEALTH_THRESHOLD_SYS_EXC
-        self._threshold_unkwn_exc = settings.HEALTH_THRESHOLD_UNKWN_EXC
+        # init settings
+        self._min_recovery_time = configs.HEALTH_MIN_RECOVERY_TIME
+        self._max_recovery_time = configs.HEALTH_MAX_RECOVERY_TIME
+        self._threshold_request = configs.HEALTH_THRESHOLD_REQUEST
+        self._threshold_timeout = configs.HEALTH_THRESHOLD_TIMEOUT
+        self._threshold_sys_exc = configs.HEALTH_THRESHOLD_SYS_EXC
+        self._threshold_unkwn_exc = configs.HEALTH_THRESHOLD_UNKWN_EXC
 
-        granularity = settings.METRICS_GRANULARITY
-        rollingsize = settings.METRICS_ROLLINGSIZE
+        granularity = configs.METRICS_GRANULARITY
+        rollingsize = configs.METRICS_ROLLINGSIZE
         self._interval = granularity * rollingsize
 
+        # callbacks
+        self._on_api_health_locked = on_api_health_locked
+        self._on_api_health_unlocked = on_api_health_unlocked
+        self._on_api_health_tested = on_api_health_tested
+        self._on_api_health_tested_bad = on_api_health_tested_bad
+        self._on_api_health_tested_ok = on_api_health_tested_ok
+
         self._locks = defaultdict(dict)
+
+    @property
+    def metrics(self):
+        """``Metrics`` object."""
+        return self._metrics
 
     @property
     def locks(self):
@@ -110,15 +125,14 @@ class HealthTester(object):
 
         if not logger:
             logger = logging.getLogger(__name__)
-        test_result = APIHealthTestResult()
-        test_result.start_at = time_now
-        test_result.func_name = func_name
-        test_result.service_name = service_name
-        test_result.locked_at = locked_at
-        test_result.health_ok_now = health_ok_now
-        test_result.logger = logger
-        test_result.lock_changed = None
+        ctx = APIHealthTestCtx()
+        ctx.start_at = time_now
+        ctx.func_name = func_name
+        ctx.service_name = service_name
+        ctx.health_ok_now = health_ok_now
+        ctx.logger = logger
 
+        lock_changed = None
         result = None
 
         if locked_status == MODE_LOCKED:
@@ -131,7 +145,7 @@ class HealthTester(object):
                 else:
                     # enter into recover mode
                     lock['locked_status'] = MODE_RECOVER
-                    test_result.lock_changed = MODE_RECOVER
+                    lock_changed = MODE_RECOVER
                     # release this request for health check
                     result = True
             else:
@@ -142,7 +156,7 @@ class HealthTester(object):
                 if locked_span >= self._max_recovery_time:
                     lock['locked_at'] = 0
                     lock['locked_status'] = MODE_UNLOCKED
-                    test_result.lock_changed = MODE_UNLOCKED
+                    lock_changed = MODE_UNLOCKED
                     result = True
                 else:
                     if (random.random() <
@@ -154,25 +168,37 @@ class HealthTester(object):
                         result = False
             else:
                 # still suffering, lock it again
-                test_result.locked_at = lock['locked_at'] = time_now
+                lock['locked_at'] = time_now
                 lock['locked_status'] = MODE_LOCKED
-                test_result.lock_changed = MODE_LOCKED
+                lock_changed = MODE_LOCKED
                 result = False
         else:
             # not in locked mode now
             if not health_ok_now:
                 # turns BAD
-                test_result.locked_at = lock['locked_at'] = time_now
+                lock['locked_at'] = time_now
                 lock['locked_status'] = MODE_LOCKED
-                test_result.lock_changed = MODE_LOCKED
+                lock_changed = MODE_LOCKED
                 result = False
             else:
                 # still OK
                 result = True
 
-        test_result.end_at = time.time()
-        test_result.result = result
-        return test_result
+        ctx.end_at = time.time()
+        ctx.result = result
+        ctx.lock = lock.copy()
+        # call callbacks.
+        if lock_changed == MODE_LOCKED:
+            self._on_api_health_locked(ctx)
+        elif lock_changed == MODE_UNLOCKED:
+            self._on_api_health_unlocked(ctx)
+
+        self._on_api_health_tested(ctx)
+        if result:
+            self._on_api_health_tested_ok(ctx)
+        else:
+            self._on_api_health_tested_bad(ctx)
+        return result
 
     def _get_api_lock(self, key):
         if key not in self._locks:
@@ -206,34 +232,3 @@ class HealthTester(object):
                     ((sys_excs / float(requests)) < self._threshold_sys_exc) and
                     ((unkwn_exc / float(requests)) < self._threshold_unkwn_exc))
         return True
-
-
-def tester_result_recorder(on_api_health_locked,
-                           on_api_health_unlocked,
-                           on_api_health_tested,
-                           on_api_health_tested_bad,
-                           on_api_health_tested_ok):
-    """Wraps ``HealthTester().test`` to record ``test_result``,
-    the five parameters must be callable and take ``APIHealthTestResult``
-    object as argument.
-    """
-    def _wrapper(func):
-        @functools.wraps(func)
-        def _record(*args, **kwargs):
-            test_result = func(*args, **kwargs)
-
-            if test_result.lock_changed == MODE_LOCKED:
-                on_api_health_locked(test_result)
-            elif test_result.lock_changed == MODE_UNLOCKED:
-                on_api_health_unlocked(test_result)
-
-            on_api_health_tested(test_result)
-            if test_result.result:
-                on_api_health_tested_ok(test_result)
-            else:
-                on_api_health_tested_bad(test_result)
-
-            return test_result.result
-
-        return _record
-    return _wrapper
