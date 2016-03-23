@@ -2,7 +2,7 @@
 
 Health is described with current errors percentage, if the health status turns bad, actions like “refuse service” should be taken, mainly to protect our backend databases.
 
-You must invoke `on_` like methods of `Metrics` to record metrics, then `HealthTester` calculate api call status by thresholds, and based the flowing poicy to decide whether the current request can be passed.
+You must invoke `on_*` like methods of `Metrics` to record metrics, then `HealthTester` calculate api call status by thresholds, and based the flowing policy to decide whether the current request can be passed.
 
 ### Policy
 
@@ -43,12 +43,13 @@ tester = HealthTester(metrics)
 def api_decorator(func):
     @functools.wraps(func)
     def _wrapper(service, *args, **kwargs):
-        service_name, func_name = service_name, func_name
+        service_name, func_name = service.name, func.__name__
         test_result = tester.test(service_name, func_name)
         if not test_result.result:
             print('Oh! No!!!')
             return
 
+        result = None
         try:
             result = func(service, *args, **kwargs)
         except UserError:
@@ -88,13 +89,14 @@ def on_api_health_tested_ok(result):
     pass
 
 
-recorder = tester_result_recorder(on_api_health_locked,
+recorder = tester_result_recorder(
+    on_api_health_locked,
     on_api_health_unlocked,
     on_api_health_tested,
     on_api_health_tested_bad,
     on_api_health_tested_ok
 )(tester.test)
 
-# result is not APIHealthTestResult any more, just True and False.
+# result is not APIHealthTestResult any more, just True or False.
 result = recoder(service_name, func_name)
 ```
