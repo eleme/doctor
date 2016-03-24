@@ -34,14 +34,14 @@ def test_metrics():
     assert metrics.get('foo.bar') == 2
 
     metrics.on_api_called_ok('bar', 'foo')
-    assert metrics.api_latest_state['bar.foo'] == True
+    assert metrics.api_latest_state['bar.foo']
 
     metrics.on_api_called_user_exc('foo', 'baz')
-    assert metrics.api_latest_state['foo.baz'] == True
+    assert metrics.api_latest_state['foo.baz']
 
     metrics.on_api_called_timeout('bar', 'baz')
     assert metrics.get('bar.baz.timeout') == 1
 
     metrics.on_api_called_sys_exc('baz', 'foo')
     assert metrics.get('baz.foo.sys_exc') == 1
-    assert metrics.api_latest_state['baz.foo'] == False
+    assert not metrics.api_latest_state['baz.foo']
