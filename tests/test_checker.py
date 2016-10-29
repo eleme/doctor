@@ -42,6 +42,10 @@ def f_tested_ok():
     return mock.Mock()
 
 
+def test_non_callbacks(configs):
+    HealthTester(configs)._send_test_call_ctx(None, None, None)
+
+
 def test_requests_all_ok(configs, key, f_locked, f_unlocked,
                          f_tested, f_tested_bad, f_tested_ok):
     """All requests ok, still UNLOCK."""

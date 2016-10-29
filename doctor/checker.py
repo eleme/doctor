@@ -43,13 +43,14 @@ class HealthTester(object):
 
     * configs: ``Configs`` object.
     """
+    _NON_CALLBACK = lambda ctx: None
 
     def __init__(self, configs,
-                 on_api_health_locked,
-                 on_api_health_unlocked,
-                 on_api_health_tested,
-                 on_api_health_tested_bad,
-                 on_api_health_tested_ok):
+                 on_api_health_locked=_NON_CALLBACK,
+                 on_api_health_unlocked=_NON_CALLBACK,
+                 on_api_health_tested=_NON_CALLBACK,
+                 on_api_health_tested_bad=_NON_CALLBACK,
+                 on_api_health_tested_ok=_NON_CALLBACK):
         self._metrics = Metrics(configs)
 
         # init settings
