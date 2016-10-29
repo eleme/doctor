@@ -11,7 +11,6 @@ class Configs(dict):
     def __init__(self, settings=None):
         defaults = dict(
             # Metrics settings.
-            #  METRICS_SWITCH=lambda: True,
             METRICS_GRANULARITY=20,  # sec
             METRICS_ROLLINGSIZE=20,
             # Health settings.
