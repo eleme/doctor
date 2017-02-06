@@ -1,4 +1,4 @@
-## doctor (split from zeus_core/health)
+## doctor
 
 Health is described with current errors percentage, if the health status turns bad, actions like “refuse service” should be taken, mainly to protect our backend databases.
 
@@ -6,7 +6,7 @@ You must invoke `on_*` like methods of `doctor.checker.HealthTester.metrics`(`do
 
 ### Install
 
-    pip install doctor -i http://pypi.dev.elenet.me/eleme/eleme
+    pip install git+https://github.com/eleme/doctor.git
 
 ### Policy
 
